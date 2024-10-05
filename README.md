@@ -11,7 +11,7 @@
 This assignment requires the following files from the previous assignments. You can get these by running
 
 ```bash
-python sync_previous_module.py previous-module-dir current-module-dir
+# python sync_previous_module.py previous-module-dir current-module-dir
 ```
 
 The files that will be synced are:
