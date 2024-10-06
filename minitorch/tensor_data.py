@@ -96,8 +96,27 @@ def broadcast_index(
         None
 
     """
-    # TODO: Implement for Task 2.2.
-    raise NotImplementedError("Need to implement for Task 2.2")
+    # Pad shape if necessary
+    pad_amount = len(big_shape) - len(shape)
+    padded_shape = (1,) * pad_amount + shape
+
+    # Check for broadcasting compatibility
+    for dim in range(len(big_shape)):
+        if padded_shape[dim] != 1 and padded_shape[dim] != big_shape[dim]:
+            raise ValueError(
+                f"Shapes {big_shape} and {shape} are not broadcast-compatible."
+            )
+
+    # Map indices correctly by aligning dimensions from the right
+    for dim in range(len(shape)):
+        big_dim = dim + pad_amount
+        if padded_shape[big_dim] > 1:
+            out_index[dim] = big_index[big_dim]
+        else:
+            out_index[dim] = 0
+
+
+    # raise NotImplementedError("Need to implement for Task 2.2")
 
 
 def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
@@ -118,7 +137,44 @@ def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
 
     """
     # TODO: Implement for Task 2.2.
-    raise NotImplementedError("Need to implement for Task 2.2")
+
+    # check if padding needed
+    number_of_dims1 = len(shape1)
+    number_of_dims2 = len(shape2)
+
+    if number_of_dims1 != number_of_dims2:
+        dims_to_pad = abs(number_of_dims1 - number_of_dims2)
+        if number_of_dims1 < number_of_dims2:
+            shape1 = tuple(1 for _ in range(dims_to_pad)) + tuple(shape1)
+        else:
+            shape2 = tuple(1 for _ in range(dims_to_pad)) + tuple(shape2)
+
+    # check if indexing error
+    broadcasted_shape = []
+    for dim1, dim2 in zip(shape1, shape2):
+        if dim1 != dim2 and not (dim1 == 1 or dim2 == 1):
+            raise IndexingError(f"Cannot broadcast shapes {shape1} and {shape2}")
+        broadcasted_shape.append(max(dim1, dim2))
+    return tuple(broadcasted_shape)
+    
+    # Alternative / more elegant
+    #   # Pad shorter shape with 1s
+    # s1, s2 = shape1[::-1], shape2[::-1]
+    # max_len = max(len(s1), len(s2))
+    # s1 = s1 + (1,) * (max_len - len(s1))
+    # s2 = s2 + (1,) * (max_len - len(s2))
+
+    # # Create broadcasted shape
+    # try:
+    #     broadcasted = tuple(max(d1, d2) if d1 == 1 or d2 == 1 or d1 == d2 else 
+    #                         raise IndexingError(f"Incompatible dimensions {d1} and {d2}")
+    #                         for d1, d2 in zip(s1, s2))
+    # except IndexingError as e:
+    #     raise IndexingError(f"Cannot broadcast shapes {shape1} and {shape2}: {str(e)}")
+
+    # return broadcasted[::-1]  
+
+    # raise NotImplementedError("Need to implement for Task 2.2")
 
 
 def strides_from_shape(shape: UserShape) -> UserStrides:
