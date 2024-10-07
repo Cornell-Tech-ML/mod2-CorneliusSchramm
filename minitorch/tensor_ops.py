@@ -7,11 +7,14 @@ from typing_extensions import Protocol
 from . import operators
 from .tensor_data import (
     shape_broadcast,
+    index_to_position,
+    broadcast_index,
+    to_index
 )
 
 if TYPE_CHECKING:
     from .tensor import Tensor
-    from .tensor_data import Shape, Storage, Strides
+    from .tensor_data import Storage, Shape, Strides, Index, OutIndex
 
 
 class MapProto(Protocol):
@@ -257,7 +260,7 @@ def tensor_map(
         Tensor map function.
 
     """
-
+    # TODO: Implement for Task 2.3.
     def _map(
         out: Storage,
         out_shape: Shape,
@@ -266,9 +269,27 @@ def tensor_map(
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        out_size = int(operators.prod(list(out_shape)))
+        # simple case
+        if in_shape == out_shape:
+            for i in range(out_size):
+                out[i] = fn(in_storage[i])
+            return
 
+        # broadcasted version:
+        out_index = OutIndex((0,) * len(out_shape))
+        in_index = OutIndex((0,) * len(in_shape))
+
+        
+        for ordinal in range(out_size):
+            # Convert flat index to multi-dimensional index for output
+            to_index(ordinal, out_shape, out_index)
+            # Map output index to input index based on broadcasting
+            broadcast_index(out_index, out_shape, in_shape, in_index)
+            # Convert multi-dimensional input index to flat index
+            in_position = index_to_position(Index(in_index), in_strides)
+             # Apply the function and assign to output
+            out[ordinal] = fn(in_storage[in_position])
     return _map
 
 
@@ -314,7 +335,31 @@ def tensor_zip(
         b_strides: Strides,
     ) -> None:
         # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        out_size = int(operators.prod(list(out_shape)))
+        # simple case
+        if a_shape == out_shape == b_shape:
+            for i, (a, b) in enumerate(zip(a_storage, b_storage)):
+                out[i] = fn(a, b)
+            return
+
+        # broadcase case
+                # broadcasted version:
+        out_index = OutIndex((0,) * len(out_shape))
+        a_index = Index((0,) * len(a_shape))
+        b_index = Index((0,) * len(b_shape))
+        
+        for ordinal in range(out_size):
+            # Convert flat index to multi-dimensional index for output
+            to_index(ordinal, out_shape, out_index)
+            # Map output index to input index based on broadcasting
+            broadcast_index(out_index, out_shape, a_shape, a_index)
+            broadcast_index(out_index, out_shape, b_shape, b_index)
+            # Convert multi-dimensional input index to flat index
+            a_ordinal = index_to_position(a_index, a_strides)
+            b_ordinal = index_to_position(b_index, b_strides)
+             # Apply the function and assign to output
+            out[ordinal] = fn(a_storage[a_ordinal], b_storage[b_ordinal])
+        # raise NotImplementedError("Need to implement for Task 2.3")
 
     return _zip
 
@@ -347,7 +392,18 @@ def tensor_reduce(
         reduce_dim: int,
     ) -> None:
         # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        # 1. Calculate the size of the dimension being reduced
+        reduce_size = a_shape[reduce_dim]
+        
+        # 2. Calculate the total number of reductions to perform
+        # (this is the product of all dimensions except the reduce_dim)
+        total_reductions = int(operators.prod([s for i, s in enumerate(a_shape) if i != reduce_dim]))
+        
+        for i in range(total_reductions):
+            accumulator = out
+            for j in range(reduce_size):
+                 accumulator = fn(accumulator, a_value)
+        # raise NotImplementedError("Need to implement for Task 2.3")
 
     return _reduce
 
