@@ -317,6 +317,8 @@ class TensorData:
 
         # Check for errors
         if aindex.shape[0] != len(self.shape):
+            print("aindex:", aindex)
+            print("shape:", self.shape)
             raise IndexingError(f"Index {aindex} must be size of {self.shape}.")
         for i, ind in enumerate(aindex):
             if ind >= self.shape[i]:

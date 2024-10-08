@@ -91,6 +91,7 @@ class Tensor:
             self.name = str(self.unique_id)
 
         self.f = backend
+        self.size = operators.prod(list(self.shape))
 
     def requires_grad_(self, x: bool) -> None:
         self.history = History()
@@ -319,9 +320,14 @@ class Tensor:
         other = self._ensure_tensor(other)
         return EQ.apply(self, other)
     
-    def all(self) -> Tensor:
-        return All.apply(self)
-    
+    # def all(self, dim: Optional[int] = None) -> Tensor:
+    #     return All.apply(self, dim)
+    def all(self, dim: Optional[int] = None) -> Tensor:
+        if dim is None:
+            return All.apply(self)
+        else:
+            return All.apply(self, Tensor.make([dim], (1,), backend=self.backend))
+
     def is_close(self, other: Tensor) -> Tensor:
         other = self._ensure_tensor(other)
         return IsClose.apply(self, other)
@@ -342,9 +348,10 @@ class Tensor:
     def sum(self, dim: Optional[int] = None) -> Tensor:
         if dim is None:
             # Sum over all dimensions
-            return Sum.apply(self, None) # TODO: Fix this
+            return Sum.apply(self)
         else:
-            return Sum.apply(self, Tensor.make([dim], (1,), backend=self.backend)) # TODO: Check if this is correct
+            # Wrap `dim` as a Tensor to satisfy `apply` method
+            return Sum.apply(self, Tensor.make([dim], (1,), backend=self.backend))
     
     def mean(self, dim: int) -> Tensor:
         return Sum.apply(self, Tensor.make([dim], (1,), backend=self.backend)) / self.shape[dim]

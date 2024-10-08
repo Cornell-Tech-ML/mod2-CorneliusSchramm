@@ -210,17 +210,29 @@ class SimpleOps(TensorOps):
         """
         f = tensor_reduce(fn)
 
-        def ret(a: "Tensor", dim: int) -> "Tensor":
-            out_shape = list(a.shape)
-            out_shape[dim] = 1
+        # def ret(a: "Tensor", dim: int) -> "Tensor":
+        #     out_shape = list(a.shape)
+        #     out_shape[dim] = 1
 
-            # Other values when not sum.
+        #     # Other values when not sum.
+        #     out = a.zeros(tuple(out_shape))
+        #     out._tensor._storage[:] = start
+
+        #     f(*out.tuple(), *a.tuple(), dim)
+        #     return out
+        def ret(a: Tensor, dim: int) -> Tensor:
+            if dim == -1:
+                # Reduce over all dimensions
+                out_shape = (1,)
+            else:
+                out_shape = list(a.shape)
+                out_shape[dim] = 1
+
             out = a.zeros(tuple(out_shape))
             out._tensor._storage[:] = start
 
             f(*out.tuple(), *a.tuple(), dim)
             return out
-
         return ret
 
     @staticmethod
@@ -399,6 +411,25 @@ def tensor_reduce(
         reduce_dim: int,
     ) -> None:
         # TODO: Implement for Task 2.3.
+        # if reduce_dim == -1:
+        #     # Reduce over all dimensions
+        #     total_size = int(operators.prod(list(a_shape)))
+        #     accumulator = out[0]  # Initialized to start value in out[0]
+        #     for i in range(total_size):
+        #         accumulator = fn(accumulator, a_storage[i])
+        #     out[0] = accumulator
+        if reduce_dim == -1:
+            # Reduce over all dimensions to produce a (1,) tensor
+            total_size = int(operators.prod(list(a_shape)))
+            accumulator = a_storage[0]  # Initialize with the first element
+            for i in range(1, total_size):
+                accumulator = fn(accumulator, a_storage[i])
+            # Assign the accumulated sum to the first (and only) position
+            out_index = np.array([0], dtype=np.int32)
+            pos = index_to_position(out_index, out_strides)
+            out[pos] = accumulator
+            return  # Exit after handling all-dimension reduction
+       
         # 1. Calculate the size of the dimension being reduced
         reduce_size = a_shape[reduce_dim]
         

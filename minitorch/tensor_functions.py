@@ -96,15 +96,37 @@ class Add(Function):
         return grad_output, grad_output
 
 
+# class All(Function):
+#     @staticmethod
+#     def forward(ctx: Context, a: Tensor, dim: Tensor) -> Tensor:
+#         """Return 1 if all are true"""
+#         if dim is not None:
+#             return a.f.mul_reduce(a, int(dim.item()))
+#         else:
+#             return a.f.mul_reduce(a.contiguous().view(int(operators.prod(a.shape))), 0)
+
 class All(Function):
     @staticmethod
-    def forward(ctx: Context, a: Tensor, dim: Tensor) -> Tensor:
-        """Return 1 if all are true"""
-        if dim is not None:
-            return a.f.mul_reduce(a, int(dim.item()))
-        else:
-            return a.f.mul_reduce(a.contiguous().view(int(operators.prod(a.shape))), 0)
+    def forward(ctx: Context, a: Tensor, dim: Optional[Tensor] = None) -> Tensor:
+        """Return 1 if all elements are true along the specified dimension.
 
+        Args:
+            ctx (Context): Context object to save information for backward pass.
+            a (Tensor): Input tensor.
+            dim (Optional[Tensor]): Dimension to reduce. If None, reduce over all dimensions.
+
+        Returns:
+        ________
+            Tensor: Result of the all reduction.
+
+        """
+        if dim is not None:
+            dim_val = int(dim.item())
+        else:
+            dim_val = -1  # Convention to reduce over all dimensions
+
+        ctx.save_for_backward(a, dim_val)
+        return a.f.mul_reduce(a, dim_val)
 
 # TODO: Implement for Task 2.3.
 
@@ -166,10 +188,14 @@ class Exp(Function):
 # sum with dim argument TODO: Check if correct
 class Sum(Function):
     @staticmethod
-    def forward(ctx: Context, a: Tensor, dim: Optional[int]) -> Tensor:
+    def forward(ctx: Context, a: Tensor, dim: Optional[Tensor] = None) -> Tensor:
         if dim is None:
-            return a.f.add_reduce(a, None)  # Implement this in tensor_ops.py
-        return a.f.add_reduce(a, dim)
+            dim_val = -1  # Use -1 to represent reduction over all dimensions
+        else:
+            dim_val = int(dim.item())
+        ctx.save_for_backward(a, dim_val)
+        return a.f.add_reduce(a, dim_val)
+
     
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tensor:
