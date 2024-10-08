@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable, Optional, Type
+import numpy as np
 
 from typing_extensions import Protocol
 
@@ -271,15 +272,18 @@ def tensor_map(
     ) -> None:
         out_size = int(operators.prod(list(out_shape)))
         # simple case
-        if in_shape == out_shape:
+        if tuple(in_shape) == tuple(out_shape) and tuple(in_strides) == tuple(out_strides):
             for i in range(out_size):
                 out[i] = fn(in_storage[i])
             return
 
         # broadcasted version:
-        out_index = OutIndex((0,) * len(out_shape))
-        in_index = OutIndex((0,) * len(in_shape))
-
+        # out_index = Index((0,) * len(out_shape))
+        # in_index = Index((0,) * len(in_shape))
+         # broadcasted version:
+        out_index = np.array([0] * len(out_shape), dtype=np.int32)
+        in_index = np.array([0] * len(in_shape), dtype=np.int32)
+        # in_index = [0] * len(in_shape)
         
         for ordinal in range(out_size):
             # Convert flat index to multi-dimensional index for output
@@ -287,7 +291,7 @@ def tensor_map(
             # Map output index to input index based on broadcasting
             broadcast_index(out_index, out_shape, in_shape, in_index)
             # Convert multi-dimensional input index to flat index
-            in_position = index_to_position(Index(in_index), in_strides)
+            in_position = index_to_position(in_index, in_strides)
              # Apply the function and assign to output
             out[ordinal] = fn(in_storage[in_position])
     return _map
@@ -337,17 +341,20 @@ def tensor_zip(
         # TODO: Implement for Task 2.3.
         out_size = int(operators.prod(list(out_shape)))
         # simple case
-        if a_shape == out_shape == b_shape:
+        if (tuple(a_shape) == tuple(out_shape) and tuple(a_strides) == tuple(out_strides)) and \
+           (tuple(b_shape) == tuple(out_shape) and tuple(b_strides) == tuple(out_strides)):
             for i, (a, b) in enumerate(zip(a_storage, b_storage)):
                 out[i] = fn(a, b)
             return
 
-        # broadcase case
-                # broadcasted version:
-        out_index = OutIndex((0,) * len(out_shape))
-        a_index = Index((0,) * len(a_shape))
-        b_index = Index((0,) * len(b_shape))
-        
+        # broadcasted version:
+        # out_index = OutIndex((0,) * len(out_shape))
+        # a_index = Index((0,) * len(a_shape))
+        # b_index = Index((0,) * len(b_shape))
+        out_index = np.array([0] * len(out_shape), dtype=np.int32)
+        a_index = np.array([0] * len(a_shape), dtype=np.int32)
+        b_index = np.array([0] * len(b_shape), dtype=np.int32)
+
         for ordinal in range(out_size):
             # Convert flat index to multi-dimensional index for output
             to_index(ordinal, out_shape, out_index)
@@ -398,13 +405,27 @@ def tensor_reduce(
         # 2. Calculate the total number of reductions to perform
         # (this is the product of all dimensions except the reduce_dim)
         total_reductions = int(operators.prod([s for i, s in enumerate(a_shape) if i != reduce_dim]))
+        # out_index = OutIndex((0,) * len(out_shape))
+        # a_index = Index((0,) * len(out_shape))
+
+        out_index = np.array([0] * len(out_shape), dtype=np.int32)
+        a_index = np.array([0] * len(a_shape), dtype=np.int32)
         
         for i in range(total_reductions):
-            accumulator = out
+            # Convert flat index to multidimensional index
+            to_index(i, out_shape, out_index)
+            # Initialize accumulator with the start value
+            accumulator = out[index_to_position(out_index, out_strides)]
             for j in range(reduce_size):
-                 accumulator = fn(accumulator, a_value)
+                # Copy output index to input index
+                a_index[:] = out_index[:]
+                # Set the reduce dimension in the input index
+                a_index[reduce_dim] = j
+                # find value
+                a_value = a_storage[index_to_position(a_index,a_strides)]
+                accumulator = fn(accumulator, a_value)
+            out[index_to_position(out_index, out_strides)] = accumulator
         # raise NotImplementedError("Need to implement for Task 2.3")
-
     return _reduce
 
 

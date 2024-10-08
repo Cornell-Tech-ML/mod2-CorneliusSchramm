@@ -75,6 +75,55 @@ def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
     # raise NotImplementedError("Need to implement for Task 2.1") 
 
 
+# def broadcast_index(
+#     big_index: Index, big_shape: Shape, shape: Shape, out_index: OutIndex
+# ) -> None:
+#     """Convert a `big_index` into `big_shape` to a smaller `out_index`
+#     into `shape` following broadcasting rules. In this case
+#     it may be larger or with more dimensions than the `shape`
+#     given. Additional dimensions may need to be mapped to 0 or
+#     removed.
+
+#     Args:
+#     ----
+#         big_index : multidimensional index of bigger tensor
+#         big_shape : tensor shape of bigger tensor
+#         shape : tensor shape of smaller tensor
+#         out_index : multidimensional index of smaller tensor
+
+#     Returns:
+#     -------
+#         None
+
+#     """
+#     # Ensure shape is not empty
+#     print("shape:", shape)
+#     print("big_shape:", big_shape)
+#     print("big_index:", big_index)
+#     print("out_index:", out_index)
+#     if len(shape) == 0:
+#         return
+#     # Pad shape if necessary
+#     pad_amount = len(big_shape) - len(shape)
+#     padded_shape = (1,) * pad_amount + shape
+
+#     # Check for broadcasting compatibility
+#     for dim in range(len(big_shape)):
+#         if padded_shape[dim] != 1 and padded_shape[dim] != big_shape[dim]:
+#             raise ValueError(
+#                 f"Shapes {big_shape} and {shape} are not broadcast-compatible."
+#             )
+
+#     # Map indices correctly by aligning dimensions from the right
+#     for dim in range(len(shape)):
+#         big_dim = dim + pad_amount
+#         if padded_shape[big_dim] > 1:
+#             out_index[dim] = big_index[big_dim]
+#         else:
+#             out_index[dim] = 0
+
+
+#     # raise NotImplementedError("Need to implement for Task 2.2")
 def broadcast_index(
     big_index: Index, big_shape: Shape, shape: Shape, out_index: OutIndex
 ) -> None:
@@ -96,17 +145,31 @@ def broadcast_index(
         None
 
     """
-    # Pad shape if necessary
+    # Debugging Statements
+    print("shape:", shape)
+    print("big_shape:", big_shape)
+    print("big_index:", big_index)
+    print("out_index:", out_index)
+    
+    if len(shape) == 0:
+        # If the smaller tensor is a scalar, no need to modify out_index
+        return
+    
     pad_amount = len(big_shape) - len(shape)
-    padded_shape = (1,) * pad_amount + shape
-
+    
+    if pad_amount < 0:
+        raise ValueError("big_shape must have at least as many dimensions as shape")
+    
+    # Create padded_shape by prepending 1s to match the number of dimensions
+    padded_shape = np.concatenate((np.ones(pad_amount, dtype=shape.dtype), shape))
+    
     # Check for broadcasting compatibility
     for dim in range(len(big_shape)):
         if padded_shape[dim] != 1 and padded_shape[dim] != big_shape[dim]:
             raise ValueError(
                 f"Shapes {big_shape} and {shape} are not broadcast-compatible."
             )
-
+    
     # Map indices correctly by aligning dimensions from the right
     for dim in range(len(shape)):
         big_dim = dim + pad_amount
@@ -114,10 +177,6 @@ def broadcast_index(
             out_index[dim] = big_index[big_dim]
         else:
             out_index[dim] = 0
-
-
-    # raise NotImplementedError("Need to implement for Task 2.2")
-
 
 def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
     """Broadcast two shapes to create a new union shape.
