@@ -92,6 +92,13 @@ class Tensor:
 
         self.f = backend
         self.size = operators.prod(list(self.shape))
+        
+    def zero_grad_(self) -> None:
+        """Resets the gradient of the tensor to None."""
+        self.grad = None   
+
+    def __hash__(self):
+        return id(self)
 
     def requires_grad_(self, x: bool) -> None:
         self.history = History()
@@ -353,8 +360,11 @@ class Tensor:
             # Wrap `dim` as a Tensor to satisfy `apply` method
             return Sum.apply(self, Tensor.make([dim], (1,), backend=self.backend))
     
-    def mean(self, dim: int) -> Tensor:
-        return Sum.apply(self, Tensor.make([dim], (1,), backend=self.backend)) / self.shape[dim]
+    def mean(self, dim: Optional[int] = None) -> Tensor:
+        if dim is None:
+            return Sum.apply(self) / self.size
+        else:
+            return Sum.apply(self, Tensor.make([dim], (1,), backend=self.backend)) / self.shape[dim]
     
     # def permute(self, *dims: int) -> Tensor:
     #     return Permute.apply(self, dims)
