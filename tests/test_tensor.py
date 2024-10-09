@@ -220,6 +220,8 @@ def test_reduce_forward_all_dims() -> None:
 
     # reduce all dims, (3 -> 1, 2 -> 1)
     t_summed_all = t.sum()
+    print("t_summed_all:", t_summed_all)
+    print("t_summed_all.shape:", t_summed_all.shape)
 
     # shape (1, 1)
     t_summed_all_expected = tensor([27])

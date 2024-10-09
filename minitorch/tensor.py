@@ -13,24 +13,22 @@ from .tensor_data import TensorData
 
 # Comment these out if not yet implemented
 from .tensor_functions import (
-    EQ,
-    LT,
-    Add,
-    All,
-    Copy,
-    Exp,
+    # Copy,
     Inv,
-    IsClose,
-    Log,
     MatMul,
     Mul,
+    Add,
     Neg,
-    Permute,
-    ReLU,
+    LT,
+    EQ,
+    All,
     Sigmoid,
+    ReLU,
+    Log,
+    Exp,
     Sum,
-    View,
-    tensor,
+    IsClose,
+    # Permute
 )
 
 if TYPE_CHECKING:
@@ -93,6 +91,14 @@ class Tensor:
             self.name = str(self.unique_id)
 
         self.f = backend
+        self.size = operators.prod(list(self.shape))
+        
+    def zero_grad_(self) -> None:
+        """Resets the gradient of the tensor to None."""
+        self.grad = None   
+
+    def __hash__(self):
+        return id(self)
 
     def requires_grad_(self, x: bool) -> None:
         self.history = History()
@@ -285,3 +291,85 @@ class Tensor:
 
     # Functions
     # TODO: Implement for Task 2.3.
+
+    def __add__(self, other: TensorLike) -> Tensor:
+        other = self._ensure_tensor(other)
+        return Add.apply(self, other)
+
+    def __radd__(self, other: TensorLike) -> Tensor:
+        return self.__add__(other)
+
+    # Add this method to the Tensor class
+    def __mul__(self, other: Tensor) -> Tensor:
+        other = self._ensure_tensor(other)
+        return Mul.apply(self, other)
+
+    def __rmul__(self, other: Tensor) -> Tensor:
+        other = self._ensure_tensor(other)
+        return Mul.apply(other, self)
+    
+    def __sub__(self, other: Tensor) -> Tensor:
+        other = self._ensure_tensor(other)
+        return Add.apply(self, Neg.apply(other))
+
+    def __rsub__(self, other: Tensor) -> Tensor:
+        other = self._ensure_tensor(other)
+        return Add.apply(other, Neg.apply(self))
+    
+    def __neg__(self) -> Tensor:
+        return Neg.apply(self)
+    
+    def __lt__(self, other: Tensor) -> Tensor:
+        other = self._ensure_tensor(other)
+        return LT.apply(self, other)
+    
+    def __eq__(self, other: Tensor) -> Tensor:
+        other = self._ensure_tensor(other)
+        return EQ.apply(self, other)
+    
+    # def all(self, dim: Optional[int] = None) -> Tensor:
+    #     return All.apply(self, dim)
+    def all(self, dim: Optional[int] = None) -> Tensor:
+        if dim is None:
+            return All.apply(self)
+        else:
+            return All.apply(self, Tensor.make([dim], (1,), backend=self.backend))
+
+    def is_close(self, other: Tensor) -> Tensor:
+        other = self._ensure_tensor(other)
+        return IsClose.apply(self, other)
+    
+    def sigmoid(self) -> Tensor:
+        return Sigmoid.apply(self)
+
+    def exp(self) -> Tensor:
+        return Exp.apply(self)
+    
+    def log(self) -> Tensor:
+        return Log.apply(self)
+    
+    def relu(self) -> Tensor:
+        return ReLU.apply(self)
+    
+
+    def sum(self, dim: Optional[int] = None) -> Tensor:
+        if dim is None:
+            # Sum over all dimensions
+            return Sum.apply(self)
+        else:
+            # Wrap `dim` as a Tensor to satisfy `apply` method
+            return Sum.apply(self, Tensor.make([dim], (1,), backend=self.backend))
+    
+    def mean(self, dim: Optional[int] = None) -> Tensor:
+        if dim is None:
+            return Sum.apply(self) / self.size
+        else:
+            return Sum.apply(self, Tensor.make([dim], (1,), backend=self.backend)) / self.shape[dim]
+    
+    # def permute(self, *dims: int) -> Tensor:
+    #     return Permute.apply(self, dims)
+    
+    # def view(self, shape: UserShape) -> Tensor:
+    #     return View.apply(self, shape)
+    
+    

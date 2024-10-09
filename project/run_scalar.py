@@ -11,7 +11,11 @@ import minitorch
 class Network(minitorch.Module):
     def __init__(self, hidden_layers):
         super().__init__()
-        raise NotImplementedError("Need to include this file from past assignment.")
+        self.layer1 = Linear(2,hidden_layers)
+        self.layer2 = Linear(hidden_layers,hidden_layers)
+        self.layer3 = Linear(hidden_layers,1)
+        # raise NotImplementedError("Need to implement for Task 1.5")
+
 
     def forward(self, x):
         middle = [h.relu() for h in self.layer1.forward(x)]
@@ -24,6 +28,7 @@ class Linear(minitorch.Module):
         super().__init__()
         self.weights = []
         self.bias = []
+
         for i in range(in_size):
             self.weights.append([])
             for j in range(out_size):
@@ -40,7 +45,36 @@ class Linear(minitorch.Module):
             )
 
     def forward(self, inputs):
-        raise NotImplementedError("Need to include this file from past assignment.")
+        #  Layer 2
+        # weights_l2 = [
+        #     [('w_0_0', 0.1), ('w_0_1', 0.1)],
+        #     [('w_1_0', 0.1), ('w_1_1', 0.1)]
+        #     ]
+
+
+        # bias_l2 = [
+        #     ('b_0', 0.1),
+        #     ('b_1', 0.1)
+        # ]
+
+        # # Layer 3
+        # weights_l3 = [
+        #     [('w_0_0', 0.1)],
+        #     [('w_1_0', 0.1)]
+        #     ]
+
+
+        # bias_l1 = [
+        #     ('b_0', 0.1),
+        # ]
+        results = []
+        for j in range(len(self.bias)):  # Iterate over output size
+            result = 0
+            for i, input_val in enumerate(inputs):
+                result += self.weights[i][j].value * input_val
+            result += self.bias[j].value
+            results.append(result)
+        return results
 
 
 def default_log_fn(epoch, total_loss, correct, losses):

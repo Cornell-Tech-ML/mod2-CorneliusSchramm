@@ -14,7 +14,7 @@ from .autodiff import Context
 from .tensor_ops import SimpleBackend, TensorBackend
 
 if TYPE_CHECKING:
-    from typing import Any, List, Tuple
+    from typing import Any, List, Tuple, Optional
 
     from .tensor import Tensor
     from .tensor_data import UserIndex, UserShape
@@ -88,6 +88,7 @@ class Inv(Function):
 class Add(Function):
     @staticmethod
     def forward(ctx: Context, t1: Tensor, t2: Tensor) -> Tensor:
+
         return t1.f.add_zip(t1, t2)
 
     @staticmethod
@@ -95,19 +96,156 @@ class Add(Function):
         return grad_output, grad_output
 
 
+# class All(Function):
+#     @staticmethod
+#     def forward(ctx: Context, a: Tensor, dim: Tensor) -> Tensor:
+#         """Return 1 if all are true"""
+#         if dim is not None:
+#             return a.f.mul_reduce(a, int(dim.item()))
+#         else:
+#             return a.f.mul_reduce(a.contiguous().view(int(operators.prod(a.shape))), 0)
+
 class All(Function):
     @staticmethod
-    def forward(ctx: Context, a: Tensor, dim: Tensor) -> Tensor:
-        """Return 1 if all are true"""
-        if dim is not None:
-            return a.f.mul_reduce(a, int(dim.item()))
-        else:
-            return a.f.mul_reduce(a.contiguous().view(int(operators.prod(a.shape))), 0)
+    def forward(ctx: Context, a: Tensor, dim: Optional[Tensor] = None) -> Tensor:
+        """Return 1 if all elements are true along the specified dimension.
 
+        Args:
+            ctx (Context): Context object to save information for backward pass.
+            a (Tensor): Input tensor.
+            dim (Optional[Tensor]): Dimension to reduce. If None, reduce over all dimensions.
+
+        Returns:
+        ________
+            Tensor: Result of the all reduction.
+
+        """
+        if dim is not None:
+            dim_val = int(dim.item())
+        else:
+            dim_val = -1  # Convention to reduce over all dimensions
+
+        ctx.save_for_backward(a, dim_val)
+        return a.f.mul_reduce(a, dim_val)
 
 # TODO: Implement for Task 2.3.
 
+class Mul(Function):
+    @staticmethod
+    def forward(ctx: Context, a: Tensor, b: Tensor) -> Tensor:
+        ctx.save_for_backward(a, b)
+        return a.f.mul_zip(a, b)
 
+    @staticmethod
+    def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+        a, b = ctx.saved_values
+        return (grad_output * b, grad_output * a)
+
+class Sigmoid(Function):
+    @staticmethod
+    def forward(ctx: Context, a: Tensor) -> Tensor:
+        ctx.save_for_backward(a)
+        return a.f.sigmoid_map(a)
+
+    @staticmethod
+    def backward(ctx: Context, grad_output: Tensor) -> Tensor:
+        a, = ctx.saved_values
+        return grad_output * a.f.sigmoid_map(a) * (1 - a.f.sigmoid_map(a))
+
+class ReLU(Function):
+    @staticmethod
+    def forward(ctx: Context, a: Tensor) -> Tensor:
+        ctx.save_for_backward(a)
+        return a.f.relu_map(a)
+
+    @staticmethod
+    def backward(ctx: Context, grad_output: Tensor) -> Tensor:
+        a, = ctx.saved_values
+        return grad_output * a.f.relu_back_zip(a, grad_output)
+
+class Log(Function):
+    @staticmethod
+    def forward(ctx: Context, a: Tensor) -> Tensor:
+        ctx.save_for_backward(a)
+        return a.f.log_map(a)
+
+    @staticmethod
+    def backward(ctx: Context, grad_output: Tensor) -> Tensor:
+        a, = ctx.saved_values
+        return grad_output * a.f.log_back_zip(a, grad_output)
+
+class Exp(Function):
+    @staticmethod
+    def forward(ctx: Context, a: Tensor) -> Tensor:
+        ctx.save_for_backward(a)
+        return a.f.exp_map(a)
+
+    @staticmethod
+    def backward(ctx: Context, grad_output: Tensor) -> Tensor:
+        a, = ctx.saved_values
+        return grad_output * a.f.exp_map(a)
+
+# sum with dim argument TODO: Check if correct
+class Sum(Function):
+    @staticmethod
+    def forward(ctx: Context, a: Tensor, dim: Optional[Tensor] = None) -> Tensor:
+        if dim is None:
+            ctx.save_for_backward(a)
+            return a.f.add_reduce(a, -1)  # Use -1 for full reduction
+        else:
+            dim_val = int(dim.item())
+            ctx.save_for_backward(a, dim)  # Save dim, not dim_val
+            return a.f.add_reduce(a, dim_val)
+
+    @staticmethod
+    def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, ...]:
+        saved_values = ctx.saved_values
+        if len(saved_values) == 1:
+            # Full reduction case
+            a, = saved_values
+            ones = zeros(a.shape) + 1
+            grad_input = grad_output * ones
+            return (grad_input,)  # Note the comma to make it a tuple
+        else:
+            # Reduction along specific dimension
+            a, dim = saved_values
+            ones = zeros(a.shape) + 1
+            grad_input = grad_output * ones
+            return (grad_input, zeros((1,)))
+
+class LT(Function):
+    @staticmethod
+    def forward(ctx: Context, a: Tensor, b: Tensor) -> Tensor:
+        ctx.save_for_backward(a, b)
+        return a.f.lt_zip(a, b)
+
+    @staticmethod
+    def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+        a, b = ctx.saved_values
+        a_zeros = zeros(a.shape)
+        b_zeros = zeros(b.shape)
+        return (a_zeros, b_zeros)
+
+class EQ(Function):
+    @staticmethod
+    def forward(ctx: Context, a: Tensor, b: Tensor) -> Tensor:
+        ctx.save_for_backward(a, b)
+        return a.f.eq_zip(a, b)
+
+    @staticmethod
+    def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+        a, b = ctx.saved_values
+        a_zeros = zeros(a.shape)
+        b_zeros = zeros(b.shape)
+        return (a_zeros, b_zeros)
+
+class IsClose(Function):
+    @staticmethod
+    def forward(ctx: Context, a: Tensor, b: Tensor) -> Tensor:
+        ctx.save_for_backward(a, b)
+        return a.f.is_close_zip(a, b)
+
+#TODO: Permute
 class View(Function):
     @staticmethod
     def forward(ctx: Context, a: Tensor, shape: Tensor) -> Tensor:
@@ -180,7 +318,7 @@ def zeros(shape: UserShape, backend: TensorBackend = SimpleBackend) -> Tensor:
 
     """
     return minitorch.Tensor.make(
-        [0.0] * int(operators.prod(shape)), shape, backend=backend
+        [0.0] * int(operators.prod(list(shape))), shape, backend=backend
     )
 
 
@@ -202,7 +340,7 @@ def rand(
         :class:`Tensor` : new tensor
 
     """
-    vals = [random.random() for _ in range(int(operators.prod(shape)))]
+    vals = [random.random() for _ in range(int(operators.prod(list(shape))))]
     tensor = minitorch.Tensor.make(vals, shape, backend=backend)
     tensor.requires_grad_(requires_grad)
     return tensor
