@@ -57,6 +57,8 @@ class TensorTrain:
         return self.model.forward(minitorch.tensor(X))
 
     def train(self, data, learning_rate, max_epochs=500, log_fn=default_log_fn):
+        import time
+
         self.learning_rate = learning_rate
         self.max_epochs = max_epochs
         self.model = Network(self.hidden_layers)
@@ -66,7 +68,10 @@ class TensorTrain:
         y = minitorch.tensor(data.y)
 
         losses = []
+        epoch_times = []
         for epoch in range(1, self.max_epochs + 1):
+            start_time = time.time()
+            
             total_loss = 0.0
             correct = 0
             optim.zero_grad()
@@ -83,15 +88,18 @@ class TensorTrain:
             # Update
             optim.step()
 
+            # Record time for this epoch
+            epoch_time = time.time() - start_time
+            epoch_times.append(epoch_time)
+
             # Logging
             if epoch % 10 == 0 or epoch == max_epochs:
                 y2 = minitorch.tensor(data.y)
-                print(f"Type of out: {type(out)}")
-                print(f"Type of out.detach(): {type(out.detach())}")
-                print(f"Shape of out: {out.shape}")
-                print(f"Shape of y2: {y2.shape}")
                 correct = int(((out.detach() > 0.5) == y2).sum()[0])
                 log_fn(epoch, total_loss, correct, losses)
+                print(f"Time for epoch {epoch}: {epoch_time:.4f} seconds")
+
+        print(f"Average time per epoch: {sum(epoch_times) / len(epoch_times):.4f} seconds")
 
 
 if __name__ == "__main__":
