@@ -131,17 +131,29 @@ class Mul(Function):
             grad_output.f.mul_zip(a, grad_output),
         )
 
+# old:
+# class Sigmoid(Function):
+#     @staticmethod
+#     def forward(ctx: Context, a: Tensor) -> Tensor:
+#         ctx.save_for_backward(a)
+#         return a.f.sigmoid_map(a)
 
+#     @staticmethod
+#     def backward(ctx: Context, grad_output: Tensor) -> Tensor:
+#         a, = ctx.saved_values
+#         return grad_output * a.f.sigmoid_map(a) * (1 - a.f.sigmoid_map(a))
+#more efficient
 class Sigmoid(Function):
     @staticmethod
-    def forward(ctx: Context, a: Tensor) -> Tensor:
-        ctx.save_for_backward(a)
-        return a.f.sigmoid_map(a)
+    def forward(ctx: Context, t1: Tensor) -> Tensor:
+        sigma = t1.f.sigmoid_map(t1)
+        ctx.save_for_backward(sigma)
+        return sigma
 
     @staticmethod
-    def backward(ctx: Context, grad_output: Tensor) -> Tensor:
-        a, = ctx.saved_values
-        return grad_output * a.f.sigmoid_map(a) * (1 - a.f.sigmoid_map(a))
+    def backward(ctx: Context, grad_output: Tensor) -> Any:
+        sigma = ctx.saved_values[0]
+        return sigma * (-sigma + 1.0) * grad_output
 
 class ReLU(Function):
     @staticmethod
@@ -152,29 +164,33 @@ class ReLU(Function):
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tensor:
         a, = ctx.saved_values
-        return grad_output * a.f.relu_back_zip(a, grad_output)
+        # return grad_output * a.f.relu_back_zip(a, grad_output)
+        return grad_output.f.relu_back_zip(a, grad_output)
 
 class Log(Function):
     @staticmethod
-    def forward(ctx: Context, a: Tensor) -> Tensor:
-        ctx.save_for_backward(a)
-        return a.f.log_map(a)
+    def forward(ctx: Context, t1: Tensor) -> Tensor:
+        ctx.save_for_backward(t1)
+        return t1.f.log_map(t1)
 
     @staticmethod
-    def backward(ctx: Context, grad_output: Tensor) -> Tensor:
-        a, = ctx.saved_values
-        return grad_output * a.f.log_back_zip(a, grad_output)
+    def backward(ctx: Context, grad_output: Tensor) -> Any:
+        (t1,) = ctx.saved_values
+        # return (minitorch.Tensor(t1.f.log_back_zip(t1, grad_output),backend=grad_output.backend),0.0)
+        return grad_output.f.log_back_zip(t1, grad_output)
 
 class Exp(Function):
     @staticmethod
-    def forward(ctx: Context, a: Tensor) -> Tensor:
-        ctx.save_for_backward(a)
-        return a.f.exp_map(a)
+    def forward(ctx: Context, t1: Tensor) -> Tensor:
+        out = t1.f.exp_map(t1)
+        ctx.save_for_backward(out)
+        return out
 
     @staticmethod
-    def backward(ctx: Context, grad_output: Tensor) -> Tensor:
-        a, = ctx.saved_values
-        return grad_output * a.f.exp_map(a)
+    def backward(ctx: Context, grad_output: Tensor) -> Any:
+        (t1,) = ctx.saved_values
+        # return (minitorch.Tensor(t1.f.exp_map(t1) * grad_output,backend=grad_output.backend),0.0)
+        return grad_output.f.mul_zip(t1, grad_output)
 
 # sum with dim argument TODO: Check if correct old:
 # class Sum(Function):
@@ -212,7 +228,7 @@ class Sum(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, float]:
-        a_shape, dim = ctx.saved_values
+        a_shape, dim = ctx.saved_values # can remove? TODO
         return grad_output, 0.0
 
 class LT(Function):
