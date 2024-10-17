@@ -210,29 +210,32 @@ class SimpleOps(TensorOps):
         """
         f = tensor_reduce(fn)
 
-        # def ret(a: "Tensor", dim: int) -> "Tensor":
-        #     out_shape = list(a.shape)
-        #     out_shape[dim] = 1
+        #original:
+        def ret(a: "Tensor", dim: int) -> "Tensor":
+            out_shape = list(a.shape)
+            out_shape[dim] = 1
 
-        #     # Other values when not sum.
-        #     out = a.zeros(tuple(out_shape))
-        #     out._tensor._storage[:] = start
-
-        #     f(*out.tuple(), *a.tuple(), dim)
-        #     return out
-        def ret(a: Tensor, dim: int) -> Tensor:
-            if dim == -1:
-                # Reduce over all dimensions
-                out_shape = (1,)
-            else:
-                out_shape = list(a.shape)
-                out_shape[dim] = 1
-
+            # Other values when not sum.
             out = a.zeros(tuple(out_shape))
             out._tensor._storage[:] = start
 
             f(*out.tuple(), *a.tuple(), dim)
             return out
+
+        # new version:
+        # def ret(a: Tensor, dim: int) -> Tensor:
+        #     if dim == -1:
+        #         # Reduce over all dimensions
+        #         out_shape = (1,)
+        #     else:
+        #         out_shape = list(a.shape)
+        #         out_shape[dim] = 1
+
+        #     out = a.zeros(tuple(out_shape))
+        #     out._tensor._storage[:] = start
+
+        #     f(*out.tuple(), *a.tuple(), dim)
+        #     return out
         return ret
 
     @staticmethod
@@ -411,24 +414,18 @@ def tensor_reduce(
         reduce_dim: int,
     ) -> None:
         # TODO: Implement for Task 2.3.
+        # OLD:
         # if reduce_dim == -1:
-        #     # Reduce over all dimensions
+        #     # Reduce over all dimensions to produce a (1,) tensor
         #     total_size = int(operators.prod(list(a_shape)))
-        #     accumulator = out[0]  # Initialized to start value in out[0]
-        #     for i in range(total_size):
+        #     accumulator = a_storage[0]  # Initialize with the first element
+        #     for i in range(1, total_size):
         #         accumulator = fn(accumulator, a_storage[i])
-        #     out[0] = accumulator
-        if reduce_dim == -1:
-            # Reduce over all dimensions to produce a (1,) tensor
-            total_size = int(operators.prod(list(a_shape)))
-            accumulator = a_storage[0]  # Initialize with the first element
-            for i in range(1, total_size):
-                accumulator = fn(accumulator, a_storage[i])
-            # Assign the accumulated sum to the first (and only) position
-            out_index = np.array([0], dtype=np.int32)
-            pos = index_to_position(out_index, out_strides)
-            out[pos] = accumulator
-            return  # Exit after handling all-dimension reduction
+        #     # Assign the accumulated sum to the first (and only) position
+        #     out_index = np.array([0], dtype=np.int32)
+        #     pos = index_to_position(out_index, out_strides)
+        #     out[pos] = accumulator
+        #     return  # Exit after handling all-dimension reduction
        
         # 1. Calculate the size of the dimension being reduced
         reduce_size = a_shape[reduce_dim]
@@ -458,6 +455,30 @@ def tensor_reduce(
             out[index_to_position(out_index, out_strides)] = accumulator
         # raise NotImplementedError("Need to implement for Task 2.3")
     return _reduce
+
+    # alternative:
+    # def _reduce(
+    #     out: Storage,
+    #     out_shape: Shape,
+    #     out_strides: Strides,
+    #     a_storage: Storage,
+    #     a_shape: Shape,
+    #     a_strides: Strides,
+    #     reduce_dim: int,
+    # ) -> None:
+    #     out_index = np.zeros(MAX_DIMS, np.int32)
+    #     reduce_size = a_shape[reduce_dim]
+    #     # a_index=np.zeros(len(a_shape),np.int32)
+    #     for i in range(len(out)):
+    #         to_index(i, out_shape, out_index)
+    #         out_position = index_to_position(out_index, out_strides)
+    #         # iterate through all element in reduce_dim
+    #         for s in range(reduce_size):
+    #             out_index[reduce_dim] = s
+    #             a_position = index_to_position(out_index, a_strides)
+    #             out[out_position] = fn(out[out_position], a_storage[a_position])
+
+    # return _reduce
 
 
 SimpleBackend = TensorBackend(SimpleOps)

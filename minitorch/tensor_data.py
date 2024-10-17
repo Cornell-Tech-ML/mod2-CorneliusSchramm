@@ -146,10 +146,10 @@ def broadcast_index(
 
     """
     # Debugging Statements
-    print("shape:", shape)
-    print("big_shape:", big_shape)
-    print("big_index:", big_index)
-    print("out_index:", out_index)
+    # print("shape:", shape)
+    # print("big_shape:", big_shape)
+    # print("big_index:", big_index)
+    # print("out_index:", out_index)
     
     if len(shape) == 0:
         # If the smaller tensor is a scalar, no need to modify out_index

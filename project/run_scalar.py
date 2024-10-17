@@ -44,37 +44,13 @@ class Linear(minitorch.Module):
                 )
             )
 
-    def forward(self, inputs):
-        #  Layer 2
-        # weights_l2 = [
-        #     [('w_0_0', 0.1), ('w_0_1', 0.1)],
-        #     [('w_1_0', 0.1), ('w_1_1', 0.1)]
-        #     ]
+    def forward(self, x):
+        batch, in_size = x.shape
+        return (
+            self.weights.value.view(1, in_size, self.out_size)
+            * x.view(batch, in_size, 1)
+        ).sum(1).view(batch, self.out_size) + self.bias.value.view(self.out_size)
 
-
-        # bias_l2 = [
-        #     ('b_0', 0.1),
-        #     ('b_1', 0.1)
-        # ]
-
-        # # Layer 3
-        # weights_l3 = [
-        #     [('w_0_0', 0.1)],
-        #     [('w_1_0', 0.1)]
-        #     ]
-
-
-        # bias_l1 = [
-        #     ('b_0', 0.1),
-        # ]
-        results = []
-        for j in range(len(self.bias)):  # Iterate over output size
-            result = 0
-            for i, input_val in enumerate(inputs):
-                result += self.weights[i][j].value * input_val
-            result += self.bias[j].value
-            results.append(result)
-        return results
 
 
 def default_log_fn(epoch, total_loss, correct, losses):

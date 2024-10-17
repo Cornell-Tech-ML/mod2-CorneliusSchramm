@@ -13,6 +13,34 @@ def RParam(*shape):
 
 # TODO: Implement for Task 2.5.
 
+class Network(minitorch.Module):
+    def __init__(self, hidden_layers):
+        super().__init__()
+        self.layer1 = Linear(2,hidden_layers)
+        self.layer2 = Linear(hidden_layers,hidden_layers)
+        self.layer3 = Linear(hidden_layers,1)
+
+    def forward(self, x):
+        middle = self.layer1.forward(x).relu()
+        end = self.layer2.forward(middle).relu()
+        return self.layer3.forward(end).sigmoid()#.view(x.shape[0])
+
+
+class Linear(minitorch.Module):
+    def __init__(self, in_size, out_size):
+        super().__init__()
+        self.weights = RParam(in_size, out_size)
+        self.bias = RParam(out_size)
+        self.out_size = out_size
+    
+    def forward(self, x):
+       batch, in_size = x.shape
+    #    print(f"Input shape: {x.shape}")
+    #    print(f"Weights shape: {self.weights.value.shape}")
+       result = (self.weights.value.view(1, in_size, self.out_size) * x.view(batch, in_size, 1)).sum(1).view(batch, self.out_size) + self.bias.value.view(self.out_size)
+    #    print(f"Output shape: {result.shape}")
+       return result
+
 def default_log_fn(epoch, total_loss, correct, losses):
     print("Epoch ", epoch, " loss ", total_loss, "correct", correct)
 
@@ -58,6 +86,10 @@ class TensorTrain:
             # Logging
             if epoch % 10 == 0 or epoch == max_epochs:
                 y2 = minitorch.tensor(data.y)
+                print(f"Type of out: {type(out)}")
+                print(f"Type of out.detach(): {type(out.detach())}")
+                print(f"Shape of out: {out.shape}")
+                print(f"Shape of y2: {y2.shape}")
                 correct = int(((out.detach() > 0.5) == y2).sum()[0])
                 log_fn(epoch, total_loss, correct, losses)
 

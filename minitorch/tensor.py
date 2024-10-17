@@ -13,7 +13,7 @@ from .tensor_data import TensorData
 
 # Comment these out if not yet implemented
 from .tensor_functions import (
-    # Copy,
+    Copy,
     Inv,
     MatMul,
     Mul,
@@ -28,7 +28,9 @@ from .tensor_functions import (
     Exp,
     Sum,
     IsClose,
-    # Permute
+    Permute,
+    View,
+    tensor
 )
 
 if TYPE_CHECKING:
@@ -91,7 +93,9 @@ class Tensor:
             self.name = str(self.unique_id)
 
         self.f = backend
-        self.size = operators.prod(list(self.shape))
+        self.size = 1
+        for dim in self.shape:
+            self.size *= dim
         
     def zero_grad_(self) -> None:
         """Resets the gradient of the tensor to None."""
@@ -322,18 +326,27 @@ class Tensor:
     def __lt__(self, other: Tensor) -> Tensor:
         other = self._ensure_tensor(other)
         return LT.apply(self, other)
+
+    def __gt__(self, b: TensorLike) -> Tensor:
+        return LT.apply(self._ensure_tensor(b), self)
     
     def __eq__(self, other: Tensor) -> Tensor:
         other = self._ensure_tensor(other)
         return EQ.apply(self, other)
-    
+    # old
     # def all(self, dim: Optional[int] = None) -> Tensor:
     #     return All.apply(self, dim)
+    # def all(self, dim: Optional[int] = None) -> Tensor:
+    #     if dim is None:
+    #         return All.apply(self)
+    #     else:
+    #         return All.apply(self, Tensor.make([dim], (1,), backend=self.backend))
+    # new
     def all(self, dim: Optional[int] = None) -> Tensor:
         if dim is None:
-            return All.apply(self)
+            return All.apply(self.view(self.size), self._ensure_tensor(0))
         else:
-            return All.apply(self, Tensor.make([dim], (1,), backend=self.backend))
+            return All.apply(self, self._ensure_tensor(dim))
 
     def is_close(self, other: Tensor) -> Tensor:
         other = self._ensure_tensor(other)
@@ -351,25 +364,68 @@ class Tensor:
     def relu(self) -> Tensor:
         return ReLU.apply(self)
     
-
+    # old approach:
+    # def sum(self, dim: Optional[int] = None) -> Tensor:
+    #     if dim is None:
+    #         # Sum over all dimensions
+    #         return Sum.apply(self)
+    #     else:
+    #         # Wrap `dim` as a Tensor to satisfy `apply` method
+    #         return Sum.apply(self, Tensor.make([dim], (1,), backend=self.backend))
+    
+    # New approach
     def sum(self, dim: Optional[int] = None) -> Tensor:
+        """Compute the sum over dimension `dim`"""
         if dim is None:
-            # Sum over all dimensions
-            return Sum.apply(self)
+            # reshaping the tensor to a 1D tensor before applying the reduction function:
+            return Sum.apply(self.contiguous().view(self.size), self._ensure_tensor(0))
         else:
-            # Wrap `dim` as a Tensor to satisfy `apply` method
-            return Sum.apply(self, Tensor.make([dim], (1,), backend=self.backend))
-    
+            return Sum.apply(self, self._ensure_tensor(dim))
+    # old
+    # def mean(self, dim: Optional[int] = None) -> Tensor:
+    #     if dim is None:
+    #         return Sum.apply(self) / self.size
+    #     else:
+    #         return Sum.apply(self, Tensor.make([dim], (1,), backend=self.backend)) / self.shape[dim]
+    # new
     def mean(self, dim: Optional[int] = None) -> Tensor:
-        if dim is None:
-            return Sum.apply(self) / self.size
+        """Compute the mean over dimension `dim`"""
+        if dim is not None:
+            return self.sum(dim) / self.shape[dim]
         else:
-            return Sum.apply(self, Tensor.make([dim], (1,), backend=self.backend)) / self.shape[dim]
-    
+            return self.sum() / self.size
     # def permute(self, *dims: int) -> Tensor:
-    #     return Permute.apply(self, dims)
+    #     """Permute the dimensions of the tensor.
+
+    #     Args:
+    #     ----
+    #         *dims: The new order of dimensions.
+
+    #     Returns:
+    #     -------
+    #         Tensor: A new tensor with permuted dimensions.
+
+    #     """
+    #     return Permute.apply(self, Tensor.make(list(dims), (len(dims),), backend=self.backend))
+    def permute(self, *dims: int) -> Tensor:
+        """Permute the dimensions of the tensor.
+
+        Args:
+        ----
+            *dims: The new order of dimensions.
+
+        Returns:
+        -------
+            Tensor: A new tensor with permuted dimensions.
+
+        """
+        return Permute.apply(self, tensor(list(dims)))
+    # def view(self, *shape: int) -> Tensor:
+    #     """Change the shape of the tensor to a new shape with the same size"""
+    #     return View.apply(self, Tensor.make(list(shape), (len(shape),), backend=self.backend))
     
-    # def view(self, shape: UserShape) -> Tensor:
-    #     return View.apply(self, shape)
+    def view(self, *shape: int) -> Tensor:
+        """Change the shape of the tensor to a new shape with the same size"""
+        return View.apply(self, tensor(list(shape)))
     
     
