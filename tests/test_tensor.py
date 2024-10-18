@@ -17,11 +17,11 @@ def test_create(t1: List[float]) -> None:
     """Test the ability to create an index a 1D Tensor"""
     t2 = tensor(t1)
     for i in range(len(t1)):
-        assert t1[i] == t2[i]
+        assert t1[i] == t2[i]  # type: ignore
 
 
 @given(tensors())
-@pytest.mark.task2_3
+@pytest.mark.task2_3  # type: ignore
 @pytest.mark.parametrize("fn", one_arg)
 def test_one_args(
     fn: Tuple[str, Callable[[float], float], Callable[[Tensor], Tensor]], t1: Tensor
@@ -34,7 +34,7 @@ def test_one_args(
 
 
 @given(shaped_tensors(2))
-@pytest.mark.task2_3
+@pytest.mark.task2_3  # type: ignore
 @pytest.mark.parametrize("fn", two_arg)
 def test_two_args(
     fn: Tuple[str, Callable[[float, float], float], Callable[[Tensor, Tensor], Tensor]],
@@ -86,7 +86,7 @@ def test_grad_size() -> None:
 
 
 @given(tensors())
-@pytest.mark.task2_4
+@pytest.mark.task2_4  # type: ignore
 @pytest.mark.parametrize("fn", red_arg)
 def test_grad_reduce(
     fn: Tuple[str, Callable[[Iterable[float]], float], Callable[[Tensor], Tensor]],
@@ -220,8 +220,10 @@ def test_reduce_forward_all_dims() -> None:
 
     # reduce all dims, (3 -> 1, 2 -> 1)
     t_summed_all = t.sum()
+    print("t_summed_all:", t_summed_all)
+    print("t_summed_all.shape:", t_summed_all.shape)
 
     # shape (1, 1)
     t_summed_all_expected = tensor([27])
 
-    assert_close(t_summed_all[0], t_summed_all_expected[0])
+    assert_close(t_summed_all[0], t_summed_all_expected[0])  # type: ignore
