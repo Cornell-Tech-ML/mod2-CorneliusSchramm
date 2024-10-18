@@ -17,7 +17,7 @@ def test_create(t1: List[float]) -> None:
     """Test the ability to create an index a 1D Tensor"""
     t2 = tensor(t1)
     for i in range(len(t1)):
-        assert t1[i] == t2[i]
+        assert t1[i] == t2[i]  # type: ignore
 
 
 @given(tensors())

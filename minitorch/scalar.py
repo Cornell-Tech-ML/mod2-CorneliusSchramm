@@ -40,7 +40,7 @@ class ScalarHistory:
 
     last_fn: Optional[Type[ScalarFunction]] = None
     ctx: Optional[Context] = None
-    inputs: Sequence[Scalar] = ()
+    inputs: Sequence[Scalar] = ()  # type: ignore
 
 
 # ## Task 1.2 and 1.4
@@ -59,7 +59,7 @@ class Scalar:
     """
 
     data: float
-    history: Optional[ScalarHistory] = field(default_factory=ScalarHistory)
+    history: Optional[ScalarHistory] = field(default_factory=ScalarHistory)  # type: ignore
     derivative: Optional[float] = None
     name: str = field(default="")
     unique_id: int = field(default=0)

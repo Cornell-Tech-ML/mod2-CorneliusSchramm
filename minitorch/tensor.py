@@ -53,7 +53,7 @@ class History:
 
     last_fn: Optional[Type[Function]] = None
     ctx: Optional[Context] = None
-    inputs: Sequence["Tensor"] = ()
+    inputs: Sequence["Tensor"] = ()  # type: ignore
 
 
 _tensor_count = 0
@@ -122,7 +122,11 @@ class Tensor:
     def _ensure_tensor(self, b: TensorLike) -> Tensor:
         """Turns a python number into a tensor with the same backend."""
         if isinstance(b, (int, float)):
-            c = Tensor.make([b], (1,), backend=self.backend)
+            c = Tensor.make([b], (1,), backend=self.backend)  # type: ignore
+            # c = Tensor.make([b], cast(Sequence[int], (1,)), backend=self.backend) # leads to 2.3 FAILED tests/test_tensor.py::test_reduce_forward_all_dims - NameError: name 'Sequence' is not defined
+            # c = Tensor.make([b], [1], backend=self.backend)  # Convert tuple to list
+            # c = Tensor.make([b], (int(1),), backend=self.backend) # Argument of type "tuple[int]" cannot be assigned to parameter "shape" of type "UserShape" in function "make"  "tuple[int]" is not assignable to "Sequence[int]"
+
         else:
             b._type_(self.backend)
             c = b
@@ -150,11 +154,11 @@ class Tensor:
     #     self._tensor.set(key2, val)
 
     def __getitem__(self, key: UserIndex) -> float:
-        key2: UserIndex = (key,) if isinstance(key, int) else key
+        key2: UserIndex = (key,) if isinstance(key, int) else key  # type: ignore
         return self._tensor.get(key2)
 
     def __setitem__(self, key: UserIndex, val: float) -> None:
-        key2: UserIndex = (key,) if isinstance(key, int) else key
+        key2: UserIndex = (key,) if isinstance(key, int) else key  # type: ignore
         self._tensor.set(key2, val)
 
     # Internal methods used for autodiff.

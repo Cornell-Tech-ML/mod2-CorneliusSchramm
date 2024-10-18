@@ -144,7 +144,7 @@ class Module:
             Any: Result of the forward method.
 
         """
-        return self.forward(*args, **kwargs)
+        return self.forward(*args, **kwargs)  # type: ignore
 
     def __repr__(self) -> str:
         """Return a string representation of the module.
@@ -160,9 +160,9 @@ class Module:
             if len(s2) == 1:
                 return s_
             first = s2.pop(0)
-            s2 = [(numSpaces * " ") + line for line in s2]
+            s2 = [(numSpaces * " ") + line for line in s2]  # type: ignore
             s = "\n".join(s2)
-            s = first + "\n" + s
+            s = first + "\n" + s  # type: ignore
             return s
 
         child_lines = []
@@ -176,7 +176,7 @@ class Module:
         main_str = self.__class__.__name__ + "("
         if lines:
             # simple one-liner info, which most builtin Modules will use
-            main_str += "\n  " + "\n  ".join(lines) + "\n"
+            main_str += "\n  " + "\n  ".join(lines) + "\n"  # type: ignore
 
         main_str += ")"
         return main_str

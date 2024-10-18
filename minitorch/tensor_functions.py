@@ -59,7 +59,7 @@ class Function:
         # Create a new variable from the result with a new history.
         back = None
         if need_grad:
-            back = minitorch.History(cls, ctx, vals)
+            back = minitorch.History(cls, ctx, vals)  # type: ignore
         return minitorch.Tensor(c._tensor, back, backend=c.backend)
 
 
@@ -631,7 +631,7 @@ class Permute(Function):
 
         """
         ctx.save_for_backward(dims)
-        dims_tuple = tuple(int(dims[i]) for i in range(dims.shape[0]))
+        dims_tuple = tuple(int(dims[i]) for i in range(dims.shape[0]))  # type: ignore
         return minitorch.Tensor.make(
             a._tensor._storage,
             tuple(a.shape[d] for d in dims_tuple),
@@ -693,7 +693,7 @@ class View(Function):
         """
         ctx.save_for_backward(a.shape)
         assert a._tensor.is_contiguous(), "Must be contiguous to view"
-        shape2 = tuple(int(shape[i]) for i in range(shape.size))
+        shape2 = tuple(int(shape[i]) for i in range(shape.size))  # type: ignore
         assert (
             a._tensor.size == operators.prod(list(shape2))
         ), f"New shape {shape2} must have same number of elements as original shape {a.shape}"
@@ -749,7 +749,7 @@ class MatMul(Function):
         t1, t2 = ctx.saved_values
 
         def transpose(a: Tensor) -> Tensor:
-            order = list(range(a.dims))
+            order = list(range(a.dims))  # type: ignore
             order[-2], order[-1] = order[-1], order[-2]
             return a._new(a._tensor.permute(*order))
 
@@ -884,14 +884,14 @@ def grad_central_difference(
         float: The computed gradient value.
 
     """
-    x = vals[arg]
+    x = vals[arg]  # type: ignore
     up = zeros(x.shape)
     up[ind] = epsilon
     vals1 = [x if j != arg else x + up for j, x in enumerate(vals)]
     vals2 = [x if j != arg else x - up for j, x in enumerate(vals)]
     delta: Tensor = f(*vals1).sum() - f(*vals2).sum()
 
-    return delta[0] / (2.0 * epsilon)
+    return delta[0] / (2.0 * epsilon)  # type: ignore
 
 
 def grad_check(f: Any, *vals: Tensor) -> None:
