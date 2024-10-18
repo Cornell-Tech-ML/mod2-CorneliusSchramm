@@ -343,7 +343,7 @@ class Tensor:
         """
         if grad_output is None:
             assert self.shape == (1,), "Must provide grad_output if non-scalar"
-            grad_output = Tensor.make([1.0], (1,), backend=self.backend)
+            grad_output = Tensor.make([1.0], (1,), backend=self.backend)  # type: ignore
         backpropagate(self, grad_output)
 
     def __truediv__(self, b: TensorLike) -> Tensor:
