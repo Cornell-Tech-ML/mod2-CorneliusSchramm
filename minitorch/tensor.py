@@ -53,7 +53,7 @@ class History:
 
     last_fn: Optional[Type[Function]] = None
     ctx: Optional[Context] = None
-    inputs: Sequence[Tensor] = ()
+    inputs: Sequence["Tensor"] = ()
 
 
 _tensor_count = 0
@@ -141,12 +141,20 @@ class Tensor:
     def __repr__(self) -> str:
         return self._tensor.to_string()
 
-    def __getitem__(self, key: Union[int, UserIndex]) -> float:
-        key2 = (key,) if isinstance(key, int) else key
+    # def __getitem__(self, key: Union[int, UserIndex]) -> float:
+    #     key2 = (key,) if isinstance(key, int) else key
+    #     return self._tensor.get(key2)
+
+    # def __setitem__(self, key: Union[int, UserIndex], val: float) -> None:
+    #     key2 = (key,) if isinstance(key, int) else key
+    #     self._tensor.set(key2, val)
+
+    def __getitem__(self, key: UserIndex) -> float:
+        key2: UserIndex = (key,) if isinstance(key, int) else key
         return self._tensor.get(key2)
 
-    def __setitem__(self, key: Union[int, UserIndex], val: float) -> None:
-        key2 = (key,) if isinstance(key, int) else key
+    def __setitem__(self, key: UserIndex, val: float) -> None:
+        key2: UserIndex = (key,) if isinstance(key, int) else key
         self._tensor.set(key2, val)
 
     # Internal methods used for autodiff.
@@ -222,10 +230,19 @@ class Tensor:
         """
 
         def zero(shape: UserShape) -> Tensor:
+            """Creates a tensor filled with zeros of the specified shape.
+
+            Args:
+            ----
+                shape (UserShape): The shape of the tensor to create.
+
+            Returns:
+            -------
+                Tensor: A tensor filled with zeros of the specified shape.
+
+            """
             return Tensor.make(
-                [0.0] * int(operators.prod(shape)),
-                shape,
-                backend=self.backend,  # type: ignore
+                [0.0] * int(operators.prod(list(shape))), shape, backend=self.backend
             )
 
         if shape is None:

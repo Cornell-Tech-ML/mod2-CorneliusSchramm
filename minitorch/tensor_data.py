@@ -161,7 +161,12 @@ def broadcast_index(
         raise ValueError("big_shape must have at least as many dimensions as shape")
 
     # Create padded_shape by prepending 1s to match the number of dimensions
-    padded_shape = np.concatenate((np.ones(pad_amount, dtype=shape.dtype), shape))
+    # padded_shape = np.concatenate(
+    #     (np.ones(pad_amount, dtype=np.int32), np.array(shape, dtype=np.int32))
+    # )  # Ensure shape is an array
+    padded_shape = np.concatenate(
+        [np.ones(pad_amount, dtype=np.int32), np.array(shape, dtype=np.int32)]
+    )  # Ensure shape is an array
 
     # Check for broadcasting compatibility
     for dim in range(len(big_shape)):
@@ -277,7 +282,8 @@ class TensorData:
         self._shape = array(shape)
         self.strides = strides
         self.dims = len(strides)
-        self.size = int(prod(shape))
+        # self.size = int(prod(shape))
+        self.size = int(prod([float(dim) for dim in shape]))
         self.shape = shape
         assert len(self._storage) == self.size
 
