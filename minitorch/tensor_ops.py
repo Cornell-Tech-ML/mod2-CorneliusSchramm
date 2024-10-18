@@ -6,16 +6,11 @@ import numpy as np
 from typing_extensions import Protocol
 
 from . import operators
-from .tensor_data import (
-    shape_broadcast,
-    index_to_position,
-    broadcast_index,
-    to_index
-)
+from .tensor_data import shape_broadcast, index_to_position, broadcast_index, to_index
 
 if TYPE_CHECKING:
     from .tensor import Tensor
-    from .tensor_data import Storage, Shape, Strides, Index, OutIndex
+    from .tensor_data import Storage, Shape, Strides
 
 
 class MapProto(Protocol):
@@ -40,7 +35,9 @@ class TensorOps:
     @staticmethod
     def reduce(
         fn: Callable[[float, float], float], start: float = 0.0
-    ) -> Callable[[Tensor, int], Tensor]: ...
+    ) -> Callable[[Tensor, int], Tensor]:
+        """Reduce placeholder"""
+        ...
 
     @staticmethod
     def matrix_multiply(a: Tensor, b: Tensor) -> Tensor:
@@ -202,6 +199,7 @@ class SimpleOps(TensorOps):
             fn: function from two floats-to-float to apply
             a (:class:`TensorData`): tensor to reduce over
             dim (int): int of dim to reduce
+            start (float): initial value for reduction
 
         Returns:
         -------
@@ -210,7 +208,7 @@ class SimpleOps(TensorOps):
         """
         f = tensor_reduce(fn)
 
-        #original:
+        # original:
         def ret(a: "Tensor", dim: int) -> "Tensor":
             out_shape = list(a.shape)
             out_shape[dim] = 1
@@ -276,6 +274,7 @@ def tensor_map(
         Tensor map function.
 
     """
+
     # TODO: Implement for Task 2.3.
     def _map(
         out: Storage,
@@ -287,7 +286,9 @@ def tensor_map(
     ) -> None:
         out_size = int(operators.prod(list(out_shape)))
         # simple case
-        if tuple(in_shape) == tuple(out_shape) and tuple(in_strides) == tuple(out_strides):
+        if tuple(in_shape) == tuple(out_shape) and tuple(in_strides) == tuple(
+            out_strides
+        ):
             for i in range(out_size):
                 out[i] = fn(in_storage[i])
             return
@@ -295,11 +296,11 @@ def tensor_map(
         # broadcasted version:
         # out_index = Index((0,) * len(out_shape))
         # in_index = Index((0,) * len(in_shape))
-         # broadcasted version:
+        # broadcasted version:
         out_index = np.array([0] * len(out_shape), dtype=np.int32)
         in_index = np.array([0] * len(in_shape), dtype=np.int32)
         # in_index = [0] * len(in_shape)
-        
+
         for ordinal in range(out_size):
             # Convert flat index to multi-dimensional index for output
             to_index(ordinal, out_shape, out_index)
@@ -307,8 +308,9 @@ def tensor_map(
             broadcast_index(out_index, out_shape, in_shape, in_index)
             # Convert multi-dimensional input index to flat index
             in_position = index_to_position(in_index, in_strides)
-             # Apply the function and assign to output
+            # Apply the function and assign to output
             out[ordinal] = fn(in_storage[in_position])
+
     return _map
 
 
@@ -356,8 +358,13 @@ def tensor_zip(
         # TODO: Implement for Task 2.3.
         out_size = int(operators.prod(list(out_shape)))
         # simple case
-        if (tuple(a_shape) == tuple(out_shape) and tuple(a_strides) == tuple(out_strides)) and \
-           (tuple(b_shape) == tuple(out_shape) and tuple(b_strides) == tuple(out_strides)):
+        if (
+            tuple(a_shape) == tuple(out_shape)
+            and tuple(a_strides) == tuple(out_strides)
+        ) and (
+            tuple(b_shape) == tuple(out_shape)
+            and tuple(b_strides) == tuple(out_strides)
+        ):
             for i, (a, b) in enumerate(zip(a_storage, b_storage)):
                 out[i] = fn(a, b)
             return
@@ -379,7 +386,7 @@ def tensor_zip(
             # Convert multi-dimensional input index to flat index
             a_ordinal = index_to_position(a_index, a_strides)
             b_ordinal = index_to_position(b_index, b_strides)
-             # Apply the function and assign to output
+            # Apply the function and assign to output
             out[ordinal] = fn(a_storage[a_ordinal], b_storage[b_ordinal])
         # raise NotImplementedError("Need to implement for Task 2.3")
 
@@ -426,19 +433,21 @@ def tensor_reduce(
         #     pos = index_to_position(out_index, out_strides)
         #     out[pos] = accumulator
         #     return  # Exit after handling all-dimension reduction
-       
+
         # 1. Calculate the size of the dimension being reduced
         reduce_size = a_shape[reduce_dim]
-        
+
         # 2. Calculate the total number of reductions to perform
         # (this is the product of all dimensions except the reduce_dim)
-        total_reductions = int(operators.prod([s for i, s in enumerate(a_shape) if i != reduce_dim]))
+        total_reductions = int(
+            operators.prod([s for i, s in enumerate(a_shape) if i != reduce_dim])
+        )
         # out_index = OutIndex((0,) * len(out_shape))
         # a_index = Index((0,) * len(out_shape))
 
         out_index = np.array([0] * len(out_shape), dtype=np.int32)
         a_index = np.array([0] * len(a_shape), dtype=np.int32)
-        
+
         for i in range(total_reductions):
             # Convert flat index to multidimensional index
             to_index(i, out_shape, out_index)
@@ -450,10 +459,11 @@ def tensor_reduce(
                 # Set the reduce dimension in the input index
                 a_index[reduce_dim] = j
                 # find value
-                a_value = a_storage[index_to_position(a_index,a_strides)]
+                a_value = a_storage[index_to_position(a_index, a_strides)]
                 accumulator = fn(accumulator, a_value)
             out[index_to_position(out_index, out_strides)] = accumulator
         # raise NotImplementedError("Need to implement for Task 2.3")
+
     return _reduce
 
     # alternative:

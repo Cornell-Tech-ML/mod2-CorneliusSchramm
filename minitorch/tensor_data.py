@@ -72,7 +72,7 @@ def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
         out_index[i] = ordinal % shape[i]
         ordinal = ordinal // shape[i]
 
-    # raise NotImplementedError("Need to implement for Task 2.1") 
+    # raise NotImplementedError("Need to implement for Task 2.1")
 
 
 # def broadcast_index(
@@ -150,26 +150,26 @@ def broadcast_index(
     # print("big_shape:", big_shape)
     # print("big_index:", big_index)
     # print("out_index:", out_index)
-    
+
     if len(shape) == 0:
         # If the smaller tensor is a scalar, no need to modify out_index
         return
-    
+
     pad_amount = len(big_shape) - len(shape)
-    
+
     if pad_amount < 0:
         raise ValueError("big_shape must have at least as many dimensions as shape")
-    
+
     # Create padded_shape by prepending 1s to match the number of dimensions
     padded_shape = np.concatenate((np.ones(pad_amount, dtype=shape.dtype), shape))
-    
+
     # Check for broadcasting compatibility
     for dim in range(len(big_shape)):
         if padded_shape[dim] != 1 and padded_shape[dim] != big_shape[dim]:
             raise ValueError(
                 f"Shapes {big_shape} and {shape} are not broadcast-compatible."
             )
-    
+
     # Map indices correctly by aligning dimensions from the right
     for dim in range(len(shape)):
         big_dim = dim + pad_amount
@@ -177,6 +177,7 @@ def broadcast_index(
             out_index[dim] = big_index[big_dim]
         else:
             out_index[dim] = 0
+
 
 def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
     """Broadcast two shapes to create a new union shape.
@@ -215,7 +216,7 @@ def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
             raise IndexingError(f"Cannot broadcast shapes {shape1} and {shape2}")
         broadcasted_shape.append(max(dim1, dim2))
     return tuple(broadcasted_shape)
-    
+
     # Alternative / more elegant
     #   # Pad shorter shape with 1s
     # s1, s2 = shape1[::-1], shape2[::-1]
@@ -225,13 +226,13 @@ def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
 
     # # Create broadcasted shape
     # try:
-    #     broadcasted = tuple(max(d1, d2) if d1 == 1 or d2 == 1 or d1 == d2 else 
+    #     broadcasted = tuple(max(d1, d2) if d1 == 1 or d2 == 1 or d1 == d2 else
     #                         raise IndexingError(f"Incompatible dimensions {d1} and {d2}")
     #                         for d1, d2 in zip(s1, s2))
     # except IndexingError as e:
     #     raise IndexingError(f"Cannot broadcast shapes {shape1} and {shape2}: {str(e)}")
 
-    # return broadcasted[::-1]  
+    # return broadcasted[::-1]
 
     # raise NotImplementedError("Need to implement for Task 2.2")
 
@@ -302,9 +303,32 @@ class TensorData:
 
     @staticmethod
     def shape_broadcast(shape_a: UserShape, shape_b: UserShape) -> UserShape:
+        """Broadcast two shapes to create a new union shape.
+
+        Args:
+        ----
+            shape_a: First shape.
+            shape_b: Second shape.
+
+        Returns:
+        -------
+            UserShape: Broadcasted shape.
+
+        """
         return shape_broadcast(shape_a, shape_b)
 
     def index(self, index: Union[int, UserIndex]) -> int:
+        """Convert user index to linear index.
+
+        Args:
+        ----
+            index: User-provided index (int or sequence).
+
+        Returns:
+        -------
+            int: Linear index into storage.
+
+        """
         if isinstance(index, int):
             aindex: Index = array([index])
         else:  # if isinstance(index, tuple):
@@ -330,6 +354,13 @@ class TensorData:
         return index_to_position(array(index), self._strides)
 
     def indices(self) -> Iterable[UserIndex]:
+        """Generate all valid indices for the tensor.
+
+        Yields
+        ------
+            Iterable[UserIndex]: A valid index for the tensor.
+
+        """
         lshape: Shape = array(self.shape)
         out_index: Index = array(self.shape)
         for i in range(self.size):
@@ -341,10 +372,29 @@ class TensorData:
         return tuple((random.randint(0, s - 1) for s in self.shape))
 
     def get(self, key: UserIndex) -> float:
+        """Retrieves the value at a given index from the tensor's storage.
+
+        Args:
+        ----
+            key: The index at which to retrieve the value.
+
+        Returns:
+        -------
+            float: The value at the specified index.
+
+        """
         x: float = self._storage[self.index(key)]
         return x
 
     def set(self, key: UserIndex, val: float) -> None:
+        """Sets the value at a given index in the tensor's storage.
+
+        Args:
+        ----
+            key: The index at which to set the value.
+            val: The value to set at the specified index.
+
+        """
         self._storage[self.index(key)] = val
 
     def tuple(self) -> Tuple[Storage, Shape, Strides]:
@@ -372,12 +422,7 @@ class TensorData:
             return self
         new_shape = tuple(self.shape[i] for i in order)
         new_strides = tuple(self.strides[i] for i in order)
-        return TensorData(
-            self._storage,  
-            new_shape,      
-            new_strides    
-        )
-        
+        return TensorData(self._storage, new_shape, new_strides)
 
     def to_string(self) -> str:
         """Convert to string"""

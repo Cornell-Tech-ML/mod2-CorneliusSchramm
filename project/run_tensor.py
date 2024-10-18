@@ -32,7 +32,7 @@ class Linear(minitorch.Module):
         self.weights = RParam(in_size, out_size)
         self.bias = RParam(out_size)
         self.out_size = out_size
-    
+
     def forward(self, x):
        batch, in_size = x.shape
     #    print(f"Input shape: {x.shape}")
@@ -71,7 +71,7 @@ class TensorTrain:
         epoch_times = []
         for epoch in range(1, self.max_epochs + 1):
             start_time = time.time()
-            
+
             total_loss = 0.0
             correct = 0
             optim.zero_grad()
